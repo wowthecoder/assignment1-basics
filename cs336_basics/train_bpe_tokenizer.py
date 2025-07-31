@@ -4,33 +4,7 @@ import multiprocessing
 from functools import partial
 from .pretokenization_example import find_chunk_boundaries
 
-class BPETokenizerParams:
-    """All you need to specify a BPETokenizer."""
-    vocab: dict[int, bytes]     # index -> bytes
-    merges: list[tuple[bytes], int] # list of merges, each merge is a tuple of two bytes and an index
-
-def merge(token_freqs: dict[tuple[bytes], int], pair: tuple[bytes, bytes]) -> dict[tuple[bytes], int]:
-    merged_freqs = defaultdict(int)
-    for tok_bytes, freq in token_freqs.items(): # tok_bytes is a tuple
-        new_token = []
-        i = 0
-        while i < len(tok_bytes):
-            # Lookahead for the pair match at position i
-            if i < len(tok_bytes) - 1 and tok_bytes[i] == pair[0] and tok_bytes[i+1] == pair[1]:
-                # Merge the pair
-                new_token.append(tok_bytes[i] + tok_bytes[i+1])
-                i += 2  # Skip the next, since it's merged
-            else:
-                new_token.append(tok_bytes[i])
-                i += 1
-
-        new_tok_bytes = tuple(new_token)
-        # Accumulate frequency in case of collision
-        merged_freqs[new_tok_bytes] += freq
-                
-    return merged_freqs
-
-def pretokenization(chunk: str, special_tokens: list[str]):
+def pretokenization(chunk: str, special_tokens: list[str]) -> dict[tuple[bytes], int]:
     # remove from the text corpus before the next step
     special_tokens_pattern = "|".join(re.escape(tok) for tok in special_tokens)
     paragraphs = re.split(special_tokens_pattern, chunk)
