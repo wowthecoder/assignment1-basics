@@ -15,6 +15,7 @@ from .common import FIXTURES_PATH, gpt2_bytes_to_unicode
 VOCAB_PATH = FIXTURES_PATH / "gpt2_vocab.json"
 MERGES_PATH = FIXTURES_PATH / "gpt2_merges.txt"
 
+os.environ["TIKTOKEN_CACHE_DIR"] = os.path.join(os.path.dirname(__file__), "tiktoken_cache")
 
 def memory_limit(max_mem):
     def decorator(f):

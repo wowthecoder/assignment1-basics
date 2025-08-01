@@ -12,7 +12,7 @@ class Tokenizer:
         # reverse vocab for encoding
         self.encodings = {v: k for k, v in vocab.items()}
         self.merges = merges 
-        self.special_tokens = special_tokens
+        self.special_tokens = special_tokens if special_tokens else []
 
     # Vocab file should be a json, merge file should be a txt
     @classmethod
@@ -36,29 +36,40 @@ class Tokenizer:
         
         return cls(vocab, merges, special_tokens)
     
-    def pretokenize(self, text: str) -> list[list[bytes]]:
-        # remove from the text corpus before the next step
-        if self.special_tokens:
-            special_tokens_pattern = "|".join(re.escape(tok) for tok in self.special_tokens)
-            paragraphs = re.split(special_tokens_pattern, text)
-        else:
-            paragraphs = [text]
-
+    def pretokenize(self, text: str) -> list[tuple[list[bytes], bool]]:
         # Pre-tokenziation
+        special_tokens_pattern = f"({'|'.join(re.escape(tok) for tok in self.special_tokens)})"
+        # Split text by special tokens, keeping the separators
+        parts = re.split(special_tokens_pattern, text)
+
         PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
         pretokens = []
 
-        for para in paragraphs:
-            for match in re.finditer(PAT, para):
-                # e.g. 'low' is converted to (l, o, w)
-                token = [bytes([b]) for b in match.group().encode("utf-8")]
-                pretokens.append(token)
+        for i, part in enumerate(parts):
+            if not part:  # Skip empty strings
+                continue
+                
+            # Check if this part is a special token
+            is_special = part in self.special_tokens
+            
+            if is_special:
+                # Handle special token
+                sep_token_byte_list = [bytes([b]) for b in part.encode("utf-8")]
+                pretokens.append((sep_token_byte_list, True))
+            else:
+                # Handle regular text - tokenize it
+                for match in re.finditer(PAT, part):
+                    token = match.group()
+                    byte_list = [bytes([b]) for b in token.encode("utf-8")]
+                    pretokens.append((byte_list, False))
 
         return pretokens
 
     def encode(self, text: str) -> list[int]:
         pretokens = self.pretokenize(text)
-        for pretoken in pretokens:
+        for pretoken, isSpecialToken in pretokens:
+            if isSpecialToken:
+                continue
             for merge_pair in self.merges:
                 for i in range(len(pretoken) - 1):
                     if merge_pair[0] == pretoken[i] and merge_pair[1] == pretoken[i+1]:
@@ -68,7 +79,11 @@ class Tokenizer:
 
         # Convert to int IDs
         encodings = []
-        for pretoken in pretokens:
+        for pretoken, isSpecialToken in pretokens:
+            if isSpecialToken:
+                specialToken = b"".join(pretoken)
+                encodings.append(self.encodings.get(specialToken, -1))
+                continue
             for token in pretoken:
                 encodings.append(self.encodings.get(token, -1))
         return encodings
