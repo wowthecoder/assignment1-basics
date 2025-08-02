@@ -101,7 +101,9 @@ class Tokenizer:
         return encodings
 
     def encode_iterable(self, iterable: Iterable[str]) -> Iterator[int]:
-        return []
+        for text in iterable:
+            for token_id in self.encode(text):
+                yield token_id
 
     def decode(self, ids: list[int]) -> str:
         tokens = [self.vocab.get(id, b'\xef\xbf\xbd') for id in ids]
