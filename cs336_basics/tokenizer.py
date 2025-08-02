@@ -12,7 +12,8 @@ class Tokenizer:
         # reverse vocab for encoding
         self.encodings = {v: k for k, v in vocab.items()}
         self.merges = merges 
-        self.special_tokens = special_tokens if special_tokens else []
+        # Compare against longest special tokens first
+        self.special_tokens = sorted(special_tokens, reverse=True) if special_tokens else None
 
     # Vocab file should be a json, merge file should be a txt
     @classmethod
@@ -38,19 +39,22 @@ class Tokenizer:
     
     def pretokenize(self, text: str) -> list[tuple[list[bytes], bool]]:
         # Pre-tokenziation
-        special_tokens_pattern = f"({'|'.join(re.escape(tok) for tok in self.special_tokens)})"
-        # Split text by special tokens, keeping the separators
-        parts = re.split(special_tokens_pattern, text)
+        if self.special_tokens:
+            special_tokens_pattern = f"({'|'.join(re.escape(tok) for tok in self.special_tokens)})"
+            # Split text by special tokens, keeping the separators
+            parts = re.split(special_tokens_pattern, text)
+        else:
+            parts = [text]
 
         PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
         pretokens = []
 
-        for i, part in enumerate(parts):
+        for part in parts:
             if not part:  # Skip empty strings
                 continue
                 
             # Check if this part is a special token
-            is_special = part in self.special_tokens
+            is_special = self.special_tokens and part in self.special_tokens
             
             if is_special:
                 # Handle special token
@@ -70,12 +74,19 @@ class Tokenizer:
         for pretoken, isSpecialToken in pretokens:
             if isSpecialToken:
                 continue
-            for merge_pair in self.merges:
-                for i in range(len(pretoken) - 1):
-                    if merge_pair[0] == pretoken[i] and merge_pair[1] == pretoken[i+1]:
-                        pretoken[i] = merge_pair[0] + merge_pair[1]
-                        pretoken.pop(i+1)
-                        break 
+            # Keep applying merges until no more merges are possible
+            merged = True 
+            while merged: 
+                merged = False 
+                for merge_pair in self.merges:
+                    for i in range(len(pretoken) - 1):
+                        if merge_pair[0] == pretoken[i] and merge_pair[1] == pretoken[i+1]:
+                            pretoken[i] = merge_pair[0] + merge_pair[1]
+                            pretoken.pop(i+1)
+                            merged = True
+                            break # Go outside the first for loop
+                    if merged:
+                        break # Restart from the first merge rule
 
         # Convert to int IDs
         encodings = []
@@ -86,6 +97,7 @@ class Tokenizer:
                 continue
             for token in pretoken:
                 encodings.append(self.encodings.get(token, -1))
+        
         return encodings
 
     def encode_iterable(self, iterable: Iterable[str]) -> Iterator[int]:
