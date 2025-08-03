@@ -14,12 +14,12 @@ class Linear(nn.Module):
         self.d_out = out_features 
         self.device = device 
         self.dtype = dtype
-        self.weight = nn.Parameter(torch.empty(out_features, in_features))
+        self.weights = nn.Parameter(torch.empty(out_features, in_features))
         self.init_weights()
 
     def init_weights(self):
         sigma = math.sqrt(2 / (self.d_in + self.d_out))
-        nn.init.trunc_normal_(self.weight, mean=0, std=sigma, a=-3*sigma, b=3*sigma)
+        nn.init.trunc_normal_(self.weights, mean=0, std=sigma, a=-3*sigma, b=3*sigma)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x @ self.weight.T
+        return x @ self.weights.T
