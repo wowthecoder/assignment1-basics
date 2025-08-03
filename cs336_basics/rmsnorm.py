@@ -17,9 +17,14 @@ class RMSNorm(nn.Module):
         self.gains = nn.Parameter(torch.ones(d_model))
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # Upcast type
+        in_dtype = x.dtype
+        x = x.to(torch.float32)
+
         squared_sum = reduce(x ** 2, '... d_model -> ...', 'sum')
         expr = (squared_sum / self.d_model) + self.eps
         rms = torch.sqrt(expr)
         prod = einsum(x, self.gains, '... d_model, d_model -> ... d_model')
         # unsqueeze rms to dimension (..., 1)
-        return prod / rms.unsqueeze(-1)
+        res = prod / rms.unsqueeze(-1)
+        return res.to(in_dtype)
