@@ -8,6 +8,8 @@ from .rope import RotaryPositionalEmbedding
 from .multihead_attention import MultiheadSelfAttention
 from .rmsnorm import RMSNorm
 from .swiglu import SwiGLU
+from .embedding import Embedding
+from .linear import Linear
 
 class TransformerBlock(nn.Module):
     def __init__(self,
@@ -49,4 +51,44 @@ class TransformerBlock(nn.Module):
         ffn_output = x + ffn_output
 
         return ffn_output
+
+class TransformerLM(nn.Module):
+    def __init__(self,
+        vocab_size: int, # The size of the vocabulary, necessary for determining the dimensionality of the token embedding matrix.
+        context_length: int, # The maximum context length, necessary for determining the dimensionality of the position embedding matrix.
+        d_model: int,
+        num_layers: int, # The number of Transformer blocks to use.
+        num_heads: int,
+        d_ff: int,
+        rope_theta: float,
+    ):
+        super().__init__()
+        self.token_embeddings = Embedding(num_embeddings=vocab_size, embedding_dim=d_model)
+        d_k = d_model // num_heads
+        # Use the same positional embedding because it doesn't have any learnable parameters
+        self.positionEncoder = RotaryPositionalEmbedding(rope_theta, d_k, max_seq_len=context_length)
+
+        self.layers = nn.ModuleList([
+            TransformerBlock(d_model, num_heads, d_ff, self.positionEncoder)
+            for _ in range(num_layers)
+        ])
+
+        self.ln_final = RMSNorm(d_model)
+        self.lm_head = Linear(in_features=d_model, out_features=vocab_size)
+
+    def forward(self, x: Int[Tensor, " batch_size sequence_length"]) -> Float[Tensor, " batch_size sequence_length vocab_size"]:
+        # PART 1: Convert each token to embeddings
+        x = self.token_embeddings(x)
+
+        # PART 2: Pass the embeddings through all the transformer blocks
+        for layer in self.layers:
+            x = layer(x)
+
+        # PART 3: Normalise output of transformers
+        x = self.ln_final(x)
+
+        # PART 4: Generate output embeddings
+        x = self.lm_head(x)
+
+        return x
 

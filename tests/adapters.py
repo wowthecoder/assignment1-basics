@@ -18,7 +18,7 @@ from cs336_basics.swiglu import SwiGLU
 from cs336_basics.rope import RotaryPositionalEmbedding
 from cs336_basics.softmax_attention import softmax, scaled_dot_product_attention
 from cs336_basics.multihead_attention import MultiheadSelfAttention
-from cs336_basics.transformer import TransformerBlock
+from cs336_basics.transformer import TransformerBlock, TransformerLM
 
 def run_linear(
     d_in: int,
@@ -63,7 +63,7 @@ def run_embedding(
         Float[Tensor, "... d_model"]: Batch of embeddings returned by your Embedding layer.
     """
     embed_model = Embedding(vocab_size, d_model)
-    embed_model.load_state_dict({'embed_matrix': weights})
+    embed_model.load_state_dict({'weight': weights})
     output = embed_model(token_ids)
     return output
 
@@ -393,7 +393,10 @@ def run_transformer_lm(
         Float[Tensor, "batch_size sequence_length vocab_size"]: Tensor with the predicted unnormalized
         next-word distribution for each token.
     """
-    raise NotImplementedError
+    transformer_lm = TransformerLM(vocab_size, context_length, d_model, num_layers, num_heads, d_ff, rope_theta)
+    transformer_lm.load_state_dict(weights)
+    output = transformer_lm(in_indices)
+    return output
 
 
 def run_rmsnorm(
