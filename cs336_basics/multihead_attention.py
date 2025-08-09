@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from einops import rearrange, repeat
+from einops import rearrange
 from jaxtyping import Float, Int
 from .linear import Linear
 from .rope import RotaryPositionalEmbedding
