@@ -40,13 +40,13 @@ def update_pair_counts_after_merge(merge_pair: tuple[bytes, bytes], pair_freqs, 
         # Remove old pair counts for this token
         for j in range(len(old_token) - 1):
             pair = (old_token[j], old_token[j + 1])
-            pair_freqs[pair] -= freq 
+            pair_freqs[pair] -= freq
             pair_to_tokens[pair].discard(old_token)
             if pair_freqs[pair] <= 0:
                 del pair_freqs[pair]
                 del pair_to_tokens[pair]
-            
-        # Create new token with merged pair 
+
+        # Create new token with merged pair
         new_token = []
         i = 0
         while i < len(old_token):
@@ -62,14 +62,14 @@ def update_pair_counts_after_merge(merge_pair: tuple[bytes, bytes], pair_freqs, 
         # Add new pair counts for the new token
         for j in range(len(new_token_tuple) - 1):
             pair = (new_token_tuple[j], new_token_tuple[j+1])
-            pair_freqs[pair] += freq 
+            pair_freqs[pair] += freq
             pair_to_tokens[pair].add(new_token_tuple)
 
         # Update token frequencies
         del token_freqs[old_token]
         token_freqs[new_token_tuple] += freq
 
- 
+
 def train_bpe(
     input_path: str,
     vocab_size: int,
@@ -93,11 +93,11 @@ def train_bpe(
     max_num_merges = vocab_size - merge_start_idx
     if max_num_merges < 0:
         raise ValueError("vocab_size is too small")
-    
+
     # Initialize vocab with special tokens
     for i, tok in enumerate(special_tokens):
         vocab[i+256] = tok.encode("utf-8")
-    
+
     with open(input_path, encoding="utf-8") as f:
         text = f.read()
 
@@ -141,8 +141,7 @@ def train_bpe(
         new_index = merge_start_idx + i
         vocab[new_index] = byte1 + byte2
         merges.append(merge_pair)
-        
+
         update_pair_counts_after_merge(merge_pair, pair_freqs, pair_to_tokens, token_freqs)
-    
+
     return vocab, merges
-    

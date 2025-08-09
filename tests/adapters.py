@@ -9,16 +9,16 @@ import numpy.typing as npt
 import torch
 from torch import Tensor
 
-from cs336_basics.tokenizer import Tokenizer
-from cs336_basics.train_bpe_tokenizer import train_bpe
-from cs336_basics.linear import Linear
-from cs336_basics.embedding import Embedding
-from cs336_basics.rmsnorm import RMSNorm
-from cs336_basics.swiglu import SwiGLU
-from cs336_basics.rope import RotaryPositionalEmbedding
-from cs336_basics.softmax_attention import softmax, scaled_dot_product_attention
-from cs336_basics.multihead_attention import MultiheadSelfAttention
-from cs336_basics.transformer import TransformerBlock, TransformerLM
+from cs336_basics.bpe_tokenizer.tokenizer import Tokenizer
+from cs336_basics.bpe_tokenizer.train_bpe_tokenizer import train_bpe
+from cs336_basics.transformer_model.linear import Linear
+from cs336_basics.transformer_model.embedding import Embedding
+from cs336_basics.transformer_model.rmsnorm import RMSNorm
+from cs336_basics.transformer_model.swiglu import SwiGLU
+from cs336_basics.transformer_model.rope import RotaryPositionalEmbedding
+from cs336_basics.transformer_model.softmax_attention import softmax, scaled_dot_product_attention
+from cs336_basics.transformer_model.multihead_attention import MultiheadSelfAttention
+from cs336_basics.transformer_model.transformer import TransformerBlock, TransformerLM
 
 def run_linear(
     d_in: int,
