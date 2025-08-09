@@ -17,6 +17,7 @@ from cs336_basics.rmsnorm import RMSNorm
 from cs336_basics.swiglu import SwiGLU
 from cs336_basics.rope import RotaryPositionalEmbedding
 from cs336_basics.softmax_attention import softmax, scaled_dot_product_attention
+from cs336_basics.multihead_attention import MultiheadSelfAttention
 
 def run_linear(
     d_in: int,
@@ -96,11 +97,9 @@ def run_swiglu(
     # swiglu.w2.weight.data = w2_weight
     # swiglu.w3.weight.data = w3_weight
     swiglu_model = SwiGLU(d_model, d_ff)
-    swiglu_model.load_state_dict({
-        "weights1": w1_weight,
-        "weights2": w2_weight,
-        "weights3": w3_weight
-    })
+    swiglu_model.w1.weights.data = w1_weight
+    swiglu_model.w2.weights.data = w2_weight
+    swiglu_model.w3.weights.data = w3_weight
     output = swiglu_model(in_features)
     return output
 
@@ -157,7 +156,13 @@ def run_multihead_self_attention(
         Float[Tensor, " ... sequence_length d_out"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
-    raise NotImplementedError
+    multi_attention_model = MultiheadSelfAttention(d_model, num_heads)
+    multi_attention_model.q_proj.weights.data = q_proj_weight
+    multi_attention_model.k_proj.weights.data = k_proj_weight
+    multi_attention_model.v_proj.weights.data = v_proj_weight
+    multi_attention_model.output_proj.weights.data = o_proj_weight
+    output = multi_attention_model(in_features)
+    return output
 
 
 def run_multihead_self_attention_with_rope(
@@ -197,7 +202,14 @@ def run_multihead_self_attention_with_rope(
         Float[Tensor, " ... sequence_length d_out"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
-    raise NotImplementedError
+    rope_layer = RotaryPositionalEmbedding(theta, d_model // num_heads, max_seq_len)
+    multi_attention_model = MultiheadSelfAttention(d_model, num_heads, rope_layer)
+    multi_attention_model.q_proj.weights.data = q_proj_weight
+    multi_attention_model.k_proj.weights.data = k_proj_weight
+    multi_attention_model.v_proj.weights.data = v_proj_weight
+    multi_attention_model.output_proj.weights.data = o_proj_weight
+    output = multi_attention_model(in_features, token_positions)
+    return output
 
 
 def run_rope(

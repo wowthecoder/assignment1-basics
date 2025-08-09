@@ -10,7 +10,7 @@ def softmax(x: Float[Tensor, " ..."], dim: int) -> Float[Tensor, " ..."]:
     sum_exp = torch.sum(exp_x, dim=dim, keepdim=True)
     return exp_x / sum_exp
 
-# pre-condition: keys == values
+# pre-condition: queries == keys == values
 def scaled_dot_product_attention(
     Q: Float[Tensor, " ... queries d_k"],
     K: Float[Tensor, " ... keys d_k"],

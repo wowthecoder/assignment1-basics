@@ -1,33 +1,32 @@
-import torch 
-import torch.nn as nn 
+import torch
+import torch.nn as nn
 from einops import einsum
+from .linear import Linear
 
 class SwiGLU(nn.Module):
     def __init__(self, d_model: int, d_ff: int | None = None):
         super().__init__()
-        self.d_model = d_model 
+        self.d_model = d_model
         if d_ff and d_ff != 0:
             self.d_ff = d_ff
         else:
             self.calculate_dff()
         self.init_weights()
-    
+
     def calculate_dff(self):
-        target_dff = 8 / 3 * self.d_model 
+        target_dff = 8 / 3 * self.d_model
         d_ff = round(target_dff / 64) * 64
         self.d_ff = int(d_ff)
-    
+
     def init_weights(self):
-        self.weights1 = nn.Parameter(torch.randn(self.d_ff, self.d_model))
-        self.weights2 = nn.Parameter(torch.randn(self.d_model, self.d_ff))
-        self.weights3 = nn.Parameter(torch.randn(self.d_ff, self.d_model))
+        self.w1 = Linear(self.d_model, self.d_ff)
+        self.w2 = Linear(self.d_ff, self.d_model)
+        self.w3 = Linear(self.d_model, self.d_ff)
 
     def silu(self, x: torch.Tensor) -> torch.Tensor:
         return x * torch.sigmoid(x)
 
     def forward(self, x: torch.Tensor):
-        w1x = einsum(x, self.weights1, '... d_model, d_ff d_model -> ... d_ff')
-        w3x = einsum(x, self.weights3, '... d_model, d_ff d_model -> ... d_ff')
-        expr = self.silu(w1x) * w3x # element wise multiplication
-        res = einsum(expr, self.weights2, '... d_ff, d_model d_ff -> ... d_model')
+        expr = self.silu(self.w1(x)) * self.w3(x) # element wise multiplication
+        res = self.w2(expr)
         return res
