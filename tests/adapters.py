@@ -19,7 +19,7 @@ from cs336_basics.transformer_model.rope import RotaryPositionalEmbedding
 from cs336_basics.transformer_model.softmax_attention import softmax, scaled_dot_product_attention
 from cs336_basics.transformer_model.multihead_attention import MultiheadSelfAttention
 from cs336_basics.transformer_model.transformer import TransformerBlock, TransformerLM
-from cs336_basics.training.utils import cross_entropy_loss
+from cs336_basics.training.utils import cross_entropy_loss, cosine_lr_schedule
 from cs336_basics.training.adamw import AdamW
 
 def run_linear(
@@ -542,7 +542,7 @@ def run_get_lr_cosine_schedule(
     Returns:
         Learning rate at the given iteration under the specified schedule.
     """
-    raise NotImplementedError
+    return cosine_lr_schedule(it, max_learning_rate, min_learning_rate, warmup_iters, cosine_cycle_iters)
 
 
 def run_save_checkpoint(

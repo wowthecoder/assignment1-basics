@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from jaxtyping import Float, Int
+import math
 
 def log_softmax(x: Float[Tensor, " ..."], dim=-1) -> Float[Tensor, " ..."]:
     x = x - torch.max(x, dim=dim, keepdim=True).values
@@ -26,3 +27,19 @@ def cross_entropy_loss(
     loss_per_item = neg_log_softmax_logits[row_indices, targets]
 
     return torch.mean(loss_per_item)
+
+def cosine_lr_schedule(
+    t: int, # The current iteration number
+    max_lr: float, # Max learning rate
+    min_lr: float, # Min learning rate
+    t_warmup: int, # Number of warm-up iterations
+    t_cosine: int # Number of cosine-annealing iterations
+) -> float:
+    if t < t_warmup:
+        return t / t_warmup * max_lr
+    if t_warmup <= t <= t_cosine:
+        expr = (t - t_warmup) / (t_cosine - t_warmup) * math.pi
+        big_expr = 0.5 * (1 + math.cos(expr)) * (max_lr - min_lr)
+        return min_lr + big_expr
+    # t > t_cosine
+    return min_lr
