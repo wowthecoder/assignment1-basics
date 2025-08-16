@@ -19,7 +19,7 @@ from cs336_basics.transformer_model.rope import RotaryPositionalEmbedding
 from cs336_basics.transformer_model.softmax_attention import softmax, scaled_dot_product_attention
 from cs336_basics.transformer_model.multihead_attention import MultiheadSelfAttention
 from cs336_basics.transformer_model.transformer import TransformerBlock, TransformerLM
-from cs336_basics.training.utils import cross_entropy_loss, cosine_lr_schedule
+from cs336_basics.training.utils import cross_entropy_loss, cosine_lr_schedule, gradient_clipping, get_batch
 from cs336_basics.training.adamw import AdamW
 
 def run_linear(
@@ -461,7 +461,7 @@ def run_get_batch(
         is the sampled input sequences, and the second tuple item is the corresponding
         language modeling labels.
     """
-    raise NotImplementedError
+    return get_batch(dataset, batch_size, context_length, device)
 
 
 def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, " ..."]:
@@ -507,7 +507,7 @@ def run_gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm:
 
     The gradients of the parameters (parameter.grad) should be modified in-place.
     """
-    raise NotImplementedError
+    return gradient_clipping(parameters, max_l2_norm)
 
 
 def get_adamw_cls() -> type[torch.optim.Optimizer]:

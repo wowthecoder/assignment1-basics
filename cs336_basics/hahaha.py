@@ -14,7 +14,12 @@ import hashlib
 
 # print(inspect.getsource(tiktoken_ext.openai_public.gpt2))
 
-xs = [[1, 2], [3, 4], [5, 6]]
-for x in xs:
-    x.append(99)  # Modifies the list object in-place
-print(xs)
+import torch
+
+x = torch.tensor([[1, 2, 3, 4, 5],
+                  [6, 7, 8, 9, 10]])
+
+# Circular shift left by 1
+shifted = torch.roll(x, shifts=-1, dims=1)
+print("Circular shift left:")
+print(shifted)

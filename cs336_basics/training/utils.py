@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from jaxtyping import Float, Int
+from collections.abc import Iterable
+import numpy.typing as npt
 import math
 
 def log_softmax(x: Float[Tensor, " ..."], dim=-1) -> Float[Tensor, " ..."]:
@@ -43,3 +45,44 @@ def cosine_lr_schedule(
         return min_lr + big_expr
     # t > t_cosine
     return min_lr
+
+def gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm: float):
+    eps = 1e-6
+
+    for p in parameters:
+        if p.grad is not None:
+            l2_norm = p.grad.data.norm(2)
+            if l2_norm > max_l2_norm:
+                clip_coef = max_l2_norm / (l2_norm + eps)
+                p.grad.data *= clip_coef
+
+def get_batch(
+    dataset: npt.NDArray, batch_size: int, context_length: int, device: str
+) -> tuple[torch.Tensor, torch.Tensor]:
+    starting_idxs = torch.randint(len(dataset) - context_length, (batch_size,))
+    inputs = torch.stack([
+        torch.from_numpy(dataset[i : i + context_length])
+        for i in starting_idxs
+    ])
+    targets = torch.stack([
+        torch.from_numpy(dataset[i + 1 : i + 1 + context_length])
+        for i in starting_idxs
+    ])
+    if "cuda" in device:
+        '''
+        Optimized approach - faster for GPU
+
+        pin_memory() locks the data in RAM, so it cannot be swapped to disk by OS during paging
+        GPU transfers are much faster from pinned memory because GPU can directly access it via DMA (Direct Memory Access)
+        DMA is a hardware feature that allows devices to transfer data directly to/from memory without involving the CPU
+
+        Non-blocking transfer: CPU can continue with other work while transfer happens in background
+        '''
+        inputs = inputs.pin_memory().to(device, non_blocking=True)
+        targets = targets.pin_memory().to(device, non_blocking=True)
+    else:
+        inputs = inputs.to(device)
+        targets = targets.to(device)
+
+    return inputs, targets
+
