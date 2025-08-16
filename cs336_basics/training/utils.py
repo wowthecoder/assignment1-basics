@@ -5,6 +5,8 @@ from jaxtyping import Float, Int
 from collections.abc import Iterable
 import numpy.typing as npt
 import math
+import os
+from typing import IO, BinaryIO
 
 def log_softmax(x: Float[Tensor, " ..."], dim=-1) -> Float[Tensor, " ..."]:
     x = x - torch.max(x, dim=dim, keepdim=True).values
@@ -48,13 +50,15 @@ def cosine_lr_schedule(
 
 def gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm: float):
     eps = 1e-6
+    params_with_grad = [p for p in parameters if p.grad is not None]
+    if not params_with_grad:
+        return
+    l2_norm = torch.sqrt(sum(p.grad.data.norm(2) ** 2 for p in params_with_grad))
 
-    for p in parameters:
-        if p.grad is not None:
-            l2_norm = p.grad.data.norm(2)
-            if l2_norm > max_l2_norm:
-                clip_coef = max_l2_norm / (l2_norm + eps)
-                p.grad.data *= clip_coef
+    if l2_norm > max_l2_norm:
+        clip_coef = max_l2_norm / (l2_norm + eps)
+        for p in params_with_grad:
+            p.grad.data *= clip_coef
 
 def get_batch(
     dataset: npt.NDArray, batch_size: int, context_length: int, device: str
@@ -86,3 +90,36 @@ def get_batch(
 
     return inputs, targets
 
+def save_checkpoint(
+    model: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    iteration: int,
+    out: str | os.PathLike | BinaryIO | IO[bytes]
+):
+    state_dict = model.state_dict() | optimizer.state_dict()
+    state_dict["iteration"] = iteration
+    torch.save(state_dict, out)
+
+def load_checkpoint(
+    src: str | os.PathLike | BinaryIO | IO[bytes],
+    model: torch.nn.Module,
+    optimizer: torch.optim.Optimizer
+):
+    checkpoint = torch.load(src)
+    iteration = checkpoint["iteration"]
+
+    model_state_dict = {}
+    optimizer_state_dict = {}
+    model_keys = set(model.state_dict().keys())
+    optimizer_keys = set(optimizer.state_dict().keys())
+
+    for key, value in checkpoint.items():
+        if key in model_keys:
+            model_state_dict[key] = value
+        elif key in optimizer_keys:
+            optimizer_state_dict[key] = value
+
+    model.load_state_dict(model_state_dict)
+    optimizer.load_state_dict(optimizer_state_dict)
+
+    return iteration

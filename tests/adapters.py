@@ -19,7 +19,7 @@ from cs336_basics.transformer_model.rope import RotaryPositionalEmbedding
 from cs336_basics.transformer_model.softmax_attention import softmax, scaled_dot_product_attention
 from cs336_basics.transformer_model.multihead_attention import MultiheadSelfAttention
 from cs336_basics.transformer_model.transformer import TransformerBlock, TransformerLM
-from cs336_basics.training.utils import cross_entropy_loss, cosine_lr_schedule, gradient_clipping, get_batch
+from cs336_basics.training.utils import cross_entropy_loss, cosine_lr_schedule, gradient_clipping, get_batch, save_checkpoint, load_checkpoint
 from cs336_basics.training.adamw import AdamW
 
 def run_linear(
@@ -561,7 +561,7 @@ def run_save_checkpoint(
             we've completed.
         out (str | os.PathLike | BinaryIO | IO[bytes]): Path or file-like object to serialize the model, optimizer, and iteration to.
     """
-    raise NotImplementedError
+    return save_checkpoint(model, optimizer, iteration, out)
 
 
 def run_load_checkpoint(
@@ -582,7 +582,7 @@ def run_load_checkpoint(
     Returns:
         int: the previously-serialized number of iterations.
     """
-    raise NotImplementedError
+    return load_checkpoint(src, model, optimizer)
 
 
 def get_tokenizer(
